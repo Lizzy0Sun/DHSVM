@@ -31,8 +31,7 @@ void SnowInterception(OPTIONSTRUCT *Options, int y, int x, int Dt, float F,
               float Tair, float Vpd, float Wind, float *RainFall, 
               float *SnowFall, float *IntRain, float *IntSnow, 
               float *TempIntStorage, float *VaporMassFlux, float *Tcanopy, 
-              float *MeltEnergy, float *MomentSq, float *Height, 
-              unsigned char UnderStory, float MS_Rainfall, float LD_FallVelocity);
+              float *MeltEnergy, float *Height, unsigned char UnderStory);
 
 float SnowMelt(int y, int x, int Dt, float Z, float Displacement, float Z0,
 	       float BaseRa, float AirDens, float EactAir, float Lv,

@@ -59,11 +59,7 @@
      float *Tcanopy         - Canopy temperature (C)
      float *MeltEnergy      - Energy used in heating and melting of the snow
                               (W/m2)
-     float *MomentSq        - Momentum squared for rain (kg* m/s)^2 /m^2*s)
-      float *Height          - Height of vegetation (m)
-      float MS_Rainfall      - Momentum for direct rainfall () COD
-      float LD_FallVelocity  - Leaf drip fall velocity corresponding to the
-                 canopy height in vegetation map (m/s)
+     float *Height          - Height of vegetation (m)
 
    Returns      : none
 
@@ -91,8 +87,7 @@ void SnowInterception(OPTIONSTRUCT *Options, int y, int x, int Dt, float F,
   float Vpd, float Wind, float *RainFall, float *SnowFall,
   float *IntRain, float *IntSnow, float *TempIntStorage,
   float *VaporMassFlux, float *Tcanopy, float *MeltEnergy,
-  float *MomentSq, float *Height, unsigned char Understory,
-  float MS_Rainfall, float LD_FallVelocity)
+  float *Height, unsigned char Understory)
 {
   float AdvectedEnergy;		/* Energy advected by the rain (W/m2) */
   float DeltaSnowInt;		/* Change in the physical swe of snow
@@ -124,10 +119,8 @@ void SnowInterception(OPTIONSTRUCT *Options, int y, int x, int Dt, float F,
                                or condensation */
   float intrainfrac;		/* fraction of intercepted water which is liquid */
   float intsnowfrac;		/*fraction of intercepted water which is solid */
-  float OriginalRainfall;
 
   /* Initialize Drip, H2O balance, and mass release variables. */
-  OriginalRainfall = *RainFall;
   InitialWaterInt = *IntSnow + *IntRain;
 
   /* Convert from pixel depth to physical depth*/
@@ -360,15 +353,4 @@ void SnowInterception(OPTIONSTRUCT *Options, int y, int x, int Dt, float F,
 
   *RainFall = RainThroughFall + Drip;
   *SnowFall = SnowThroughFall + ReleasedMass;
-
-  /* Find momentum squared of rainfall. */
-  if (Understory)
-    /* Since the understory is assumed to cover the entire grid cell, all
-       momentum is associated with leaf drip, eq. 2, Wicks and Bathurst (1996) */
-    *MomentSq = pow(LD_FallVelocity * WATER_DENSITY, 2) * PI / 6 *
-    pow(LEAF_DRIP_DIA, 3) * (*RainFall) / Dt;
-  else
-    /* If no understory, part of the rainfall reaches the ground as direct throughfall. */
-    *MomentSq = pow(LD_FallVelocity * WATER_DENSITY, 2) * PI / 6 *
-    pow(LEAF_DRIP_DIA, 3) * Drip / Dt + (1 - F) * MS_Rainfall;
 }

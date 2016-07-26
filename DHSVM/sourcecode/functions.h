@@ -45,11 +45,10 @@ float CalcKhDry(float Density);
 float CalcSnowAlbedo(float TSurf, unsigned short Last, SNOWTABLE *SnowAlbedo);
 
 float CalcTransmissivity(float SoilDepth, float WaterTable, float LateralKs,
-			 float KsExponent, float DepthThresh);
+	     float KsExponent, float DepthThresh);
 
 void CalcWeights(METLOCATION *Station, int NStats, int NX, int NY,
-		 uchar **BasinMask, uchar ****WeightArray,
-		 OPTIONSTRUCT *Options);
+		 uchar **BasinMask, uchar ****WeightArray, OPTIONSTRUCT *Options);
 
 double ChannelCulvertSedFlow(int y, int x, CHANNEL * ChannelData, int i);
 
@@ -60,6 +59,11 @@ void CheckOut(OPTIONSTRUCT *Options, LAYER Veg, LAYER Soil,
 unsigned char dequal(double a, double b);
 
 void deg2utm(float la, float lo, float *x, float *y);
+
+void DistributeSatflow(int Dt, float DX, float DY, float SatFlow,
+  int NSoilLayers, float TotalDepth, float *RootDepth, float *Ks,
+  float *Porosity, float *FCap, float *Perc, float *PercArea, float *Adjust,
+  float *TableDepth, float *Runoff, float *Moist);
 
 void draw(DATE *Day, int first, int DayStep, MAPSIZE *Map, int NGraphics,
 	  int *which_graphics, VEGTABLE *VType, SOILTABLE *SType, SNOWPIX **SnowMap, 
@@ -101,6 +105,10 @@ void GetMetData(OPTIONSTRUCT *Options, TIMESTRUCT *Time, int NSoilLayers,
 uchar InArea(MAPSIZE *Map, COORD *Loc);
 
 void InitAggregated(int MaxVegLayers, int MaxSoilLayers, AGGREGATED *Total);
+
+void InitCanopyGapMap(OPTIONSTRUCT *Options, LISTPTR Input, MAPSIZE *Map,
+  LAYER *Soil, LAYER *Veg, VEGTABLE *VType, VEGPIX ***VegMap, SOILTABLE *SType, 
+  SOILPIX ***SoilMap);
 
 void InitChannelRVeg(TIMESTRUCT *Time, Channel *Channel); 
 
@@ -213,7 +221,7 @@ void InitSoilMap(LISTPTR Input, OPTIONSTRUCT *Options, MAPSIZE *Map,
 		 LAYER *Soil, TOPOPIX **TopoMap, SOILPIX ***SoilMap);
 
 int InitSoilTable(OPTIONSTRUCT *Options, SOILTABLE **SType, 
-			LISTPTR Input, LAYER *Soil, int InfiltOption);
+		 LISTPTR Input, LAYER *Soil, int InfiltOption);
 
 void InitSnowTable(SNOWTABLE **SnowAlbedo, int Dt);
 
@@ -225,36 +233,36 @@ void InitStations(LISTPTR Input, MAPSIZE *Map, int NDaySteps,
 		  OPTIONSTRUCT *Options, int *NStats, METLOCATION **Stat);
 
 void InitTables(int StepsPerDay, LISTPTR Input, OPTIONSTRUCT *Options,
-		SOILTABLE **SType, LAYER *Soil, VEGTABLE **VType,
-		LAYER *Veg, SNOWTABLE **SnowAlbedo);
+		  SOILTABLE **SType, LAYER *Soil, VEGTABLE **VType,
+          LAYER *Veg, SNOWTABLE **SnowAlbedo);
 
 void InitTerrainMaps(LISTPTR Input, OPTIONSTRUCT *Options, MAPSIZE *Map,
-		     LAYER *Soil, TOPOPIX ***TopoMap, SOILPIX ***SoilMap,
-		     VEGPIX ***VegMap);
+		  LAYER *Soil, LAYER *Veg, TOPOPIX ***TopoMap, SOILTABLE *SType, 
+          SOILPIX ***SoilMap, VEGTABLE *VType, VEGPIX ***VegMap);
 
 void InitTopoMap(LISTPTR Input, OPTIONSTRUCT *Options, MAPSIZE *Map,
-		 TOPOPIX ***TopoMap);
+		  TOPOPIX ***TopoMap);
 
 void InitUnitHydrograph(LISTPTR Input, MAPSIZE *Map, TOPOPIX **TopoMap,
-			UNITHYDR ***UnitHydrograph, float **Hydrograph,
-			UNITHYDRINFO *HydrographInfo);
+		  UNITHYDR ***UnitHydrograph, float **Hydrograph,
+		  UNITHYDRINFO *HydrographInfo);
 
-void InitVegMap( OPTIONSTRUCT *Options, LISTPTR Input, MAPSIZE *Map, VEGPIX ***VegMap);
+void InitVegMap(OPTIONSTRUCT *Options, LISTPTR Input, MAPSIZE *Map, VEGPIX ***VegMap);
 
 int InitVegTable(VEGTABLE **VType, LISTPTR Input, OPTIONSTRUCT *Options, LAYER *Veg);
 
 float evalexpint(int n, float x);
 
 void InitWindModel(LISTPTR Input, INPUTFILES *InFiles, int NStats,
-		   METLOCATION *Stat);
+		  METLOCATION *Stat);
 
 void InitWindModelMaps(char *WindPath, int NY, int NX, float ****WindModel);
 
 uchar IsStationLocation(COORD *Loc, int NStats, METLOCATION *Station,
-			int *WhichStation);
+	      int *WhichStation);
 
 void InitXGraphics(int argc, char **argv,
-		   int ny, int nx, int nd, MET_MAP_PIX ***MetMap);
+		  int ny, int nx, int nd, MET_MAP_PIX ***MetMap);
 
 float LapsePrecip(float Precip, float FromElev, float ToElev, float PrecipLapse);
 
@@ -265,21 +273,21 @@ PIXMET MakeLocalMetData(int y, int x, MAPSIZE *Map, int DayStep,
             uchar *MetWeights, float LocalElev, PIXRAD *RadMap,
 			PRECIPPIX *PrecipMap, MAPSIZE *Radar, RADARPIX **RadarMap,
 			float **PrismMap, SNOWPIX *LocalSnow, SNOWTABLE *SnowAlbedo,
+            CanopyGapStruct **Gap, VEGPIX *VegMap,
 			float ***MM5Input, float ***WindModel, float **PrecipLapseMap,
 			MET_MAP_PIX ***MetMap, int NGraphics, int Month, float skyview,
 			unsigned char shadow, float SunMax, float SineSolarAltitude);
 
-void MassBalance(DATE *Current, DATE *Start, FILES *Out, AGGREGATED *Total, WATERBALANCE *Mass);
+void MassBalance(DATE *Current, DATE *Start, FILES *Out, AGGREGATED *Total, 
+  WATERBALANCE *Mass);
 
-void MassEnergyBalance(OPTIONSTRUCT *Options, int y, int x, 
-			   float SineSolarAltitude, float DX, float DY,
-		        int Dt, int HeatFluxOption, int CanopyRadAttOption, 
-		       int InfiltOption,int MaxVegLayers,  PIXMET *LocalMet,
-		       ROADSTRUCT *LocalNetwork, PRECIPPIX *LocalPrecip,
-		       VEGTABLE *VType, VEGPIX *LocalVeg, SOILTABLE *SType,
-		       SOILPIX *LocalSoil, SNOWPIX *LocalSnow, PIXRAD *LocalRad,
-               EVAPPIX *LocalEvap, PIXRAD *TotalRad, CHANNEL *ChannelData, 
-               float** skyview);
+void MassEnergyBalance(OPTIONSTRUCT *Options, int y, int x, float SineSolarAltitude,
+			   float DX, float DY, int Dt, int HeatFluxOption, int CanopyRadAttOption, 
+		       int InfiltOption, int MaxSoilLayer, int MaxVegLayers,  PIXMET *LocalMet,
+		       ROADSTRUCT *LocalNetwork, PRECIPPIX *LocalPrecip, VEGTABLE *VType,
+		       VEGPIX *LocalVeg, SOILTABLE *SType, SOILPIX *LocalSoil, 
+               SNOWPIX *LocalSnow, PIXRAD *LocalRad, EVAPPIX *LocalEvap, PIXRAD *TotalRad, 
+               CHANNEL *ChannelData, float **skyview);
 
 float MaxRoadInfiltration(ChannelMapPtr **map, int col, int row);
 
@@ -345,13 +353,70 @@ void StoreModelState(char *Path, DATE *Current, MAPSIZE *Map,
 float viscosity(float Tair, float Rh);
 
 /* functions for John's RBM model */
-int channel_save_outflow_text_cplmt(TIMESTRUCT *Time, char *tstring, Channel *net, CHANNEL *netfile, int flag);
+int channel_save_outflow_text_cplmt(TIMESTRUCT *Time, char *tstring, 
+  Channel *net, CHANNEL *netfile, int flag);
 void CalcCanopyShading (TIMESTRUCT *Time, Channel *Channel, SOLARGEOMETRY *SolarGeo);
 
 float CalcShadeDensity(int ShadeCase, float HDEM, float WStream, float SunAzimuth,
-					  float StreamAzim, float SunAltitude, float TREEHEIGHT,
-					  float BUFFERWIDTH, float Dx1, float Dx2, float Ext_Coeff);
+  float StreamAzim, float SunAltitude, float TREEHEIGHT,
+  float BUFFERWIDTH, float Dx1, float Dx2, float Ext_Coeff);
 
 float CalcCanopySkyView(float HDEM, float dist);
+
+/* functions used in canopy gapping */
+void AggregateCanopyGap(CanopyGapStruct **Gap, VEGPIX *LocalVeg,
+  SOILPIX *LocalSoil, SNOWPIX *LocalSnow, EVAPPIX *LocalEvap,
+  PRECIPPIX *LocalPrecip, PIXRAD *LocalRad, double weight, int NSoil, int NVeg);
+ 
+float AreaIntegral(float Extn, float Lmax, float SolarAltitude, float R,
+  float xmax, float xmin);
+
+void CalcCanopyGapAerodynamic(CanopyGapStruct **Gap, int NVegLayers,
+  float *Height);
+
+void CalcCanopyGapET(CanopyGapStruct **Gap, int MaxSoilLayer, VEGTABLE *VType, 
+  VEGPIX *LocalVeg, SOILTABLE *SType, SOILPIX *LocalSoil, PIXMET *LocalMet, 
+  EVAPPIX *LocalEvap, ROADSTRUCT *LocalNetwork, int Dt, float UpperRa, 
+  float LowerRa);
+
+void CanopyGapInterception(OPTIONSTRUCT *Options, CanopyGapStruct **Gap,
+  int HeatFluxOption, int y, int x, int Dt, int NVegLActual,
+  float DX, float DY, float UpperRa, float UpperWind, VEGTABLE *VType,
+  SOILPIX *LocalSoil, VEGPIX *LocalVeg, SNOWPIX *LocalSnow,
+  PRECIPPIX *LocalPrecip, PIXRAD *LocalRad, PIXMET *LocalMet);
+
+void CanopyGapInterceptionStorage(int NAct, float *MaxInt, float *Fract,
+  float *Int, float *Precip);
+
+void CanopyGapRadiation(CanopyGapStruct **Gap, float SunAngle, float Rs, 
+  float Rsb, float Rsd, float Ld, float TSurf, float Tcanopy, float SoilAlbedo, 
+  VEGTABLE *VType, SNOWPIX *LocalSnow, PIXRAD *LocalRad);
+
+float CanopyGapShortRadiation(int Understory, float h, float dm, float SunAngle,
+  float Rsb, float Rsd, float Extn, float SoilAlbedo, VEGTABLE *VType,
+  SNOWPIX *LocalSnow);
+
+void CanopyGapLongRadiation(CanopyGapStruct *Gap, float h, float dm, float Ld, float Tsurf);
+
+void CanopyGapSnowMelt(OPTIONSTRUCT *Options, int y, int x, int Dt, 
+  CanopyGapStruct **Gap, float DX, float DY, VEGTABLE *VType, VEGPIX *LocalVeg, 
+  SNOWPIX *LocalSnow, PRECIPPIX *LocalPrecip, PIXRAD *LocalRad, PIXMET *LocalMet);
+
+void GapSurroundingLongRadiation(CanopyGapStruct *Forest, float Ld, float Vf, float F,
+  float Tcanopy, float Tsurf);
+
+void GapSurroundingShortRadiation(CanopyGapStruct *Forest, VEGTABLE *VType,
+  SNOWPIX *LocalSnow, float SoilAlbedo, float SineSolarAltitude, float Rs);
+
+void CalcGapSurroudingET(int Dt, CanopyGapStruct **Gap,
+  SOILTABLE *SType, VEGTABLE *VType, PIXRAD *LocalRad, PIXMET *LocalMet,
+  SOILPIX *LocalSoil, ROADSTRUCT *LocalNetwork, float UpperRa, float LowerRa);
+
+float NonGapShortRadiation(float Rs, float SunAngle, float SoilAlbedo,
+  CanopyGapStruct *Forest, VEGTABLE *VType, SNOWPIX *LocalSnow);
+
+void CalcGapSurroudingIntercept(OPTIONSTRUCT *Options, int HeatFluxOption,
+  int y, int x, int Dt, int NVegLActual, CanopyGapStruct **Gap, VEGTABLE *VType,
+  PIXRAD *LocalRad, PIXMET *LocalMet, float UpperRa, float UpperWind);
 
 #endif

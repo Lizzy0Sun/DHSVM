@@ -147,8 +147,8 @@ void InitEvapMap(MAPSIZE *Map, EVAPPIX ***EvapMap, SOILPIX **SoilMap,
 /*****************************************************************************
   InitPrecipMap()
 *****************************************************************************/
-void InitPrecipMap(MAPSIZE * Map, PRECIPPIX *** PrecipMap, VEGPIX ** VegMap,
-  LAYER * Veg, TOPOPIX ** TopoMap)
+void InitPrecipMap(MAPSIZE *Map, PRECIPPIX ***PrecipMap, VEGPIX **VegMap,
+  LAYER *Veg, TOPOPIX **TopoMap)
 {
   const char *Routine = "InitPrecipMap";
   int x;			/* counter */

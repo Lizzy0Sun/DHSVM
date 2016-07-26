@@ -107,7 +107,6 @@ void Aggregate(MAPSIZE *Map, OPTIONSTRUCT *Options, TOPOPIX **TopoMap,
 		Total->Snow.HasSnow = TRUE;
 		Total->Snow.Swq += Snow[y][x].Swq;
 		Total->Snow.Glacier += Snow[y][x].Glacier;
-		/* Total->Snow.Melt += Snow[y][x].Melt; */
 		Total->Snow.Melt += Snow[y][x].Outflow;
 		Total->Snow.PackWater += Snow[y][x].PackWater;
 		Total->Snow.TPack += Snow[y][x].TPack;

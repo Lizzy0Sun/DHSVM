@@ -1158,7 +1158,7 @@ void DumpPix(DATE *Current, int first, FILES *OutFile, EVAPPIX *Evap,
   for (i = 0; i < NCanopyStory; i++)
     for (j = 0; j < NSoil; j++)
       fprintf(OutFile->FilePtr, " %g", Evap->ESoil[i][j]);    /* transpiration from each veg layer from each soil layer */
-  fprintf(OutFile->FilePtr, " %g", Evap->EvapSoil);        /* evaporation from uppper soil */
+  fprintf(OutFile->FilePtr, " %g", Evap->EvapSoil);           /* evaporation from uppper soil */
 
   for (i = 0; i < NCanopyStory; i++)
     fprintf(OutFile->FilePtr, " %g", Precip->IntRain[i]);

@@ -33,14 +33,17 @@
  /*****************************************************************************
    InitTerrainMaps()
  *****************************************************************************/
-void InitTerrainMaps(LISTPTR Input, OPTIONSTRUCT * Options, MAPSIZE * Map,
-  LAYER * Soil, TOPOPIX *** TopoMap, SOILPIX *** SoilMap, VEGPIX *** VegMap)
+void InitTerrainMaps(LISTPTR Input, OPTIONSTRUCT *Options, MAPSIZE *Map,
+  LAYER *Soil, LAYER *Veg, TOPOPIX ***TopoMap, SOILTABLE *SType, SOILPIX ***SoilMap, 
+  VEGTABLE *VType, VEGPIX ***VegMap)
 {
   printf("\nInitializing terrain maps\n");
 
   InitTopoMap(Input, Options, Map, TopoMap);
   InitSoilMap(Input, Options, Map, Soil, *TopoMap, SoilMap);
   InitVegMap(Options, Input, Map, VegMap);
+  if (Options->CanopyGapping)
+    InitCanopyGapMap(Options, Input, Map, Soil, Veg, VType, VegMap, SType, SoilMap);
 }
 
 /*****************************************************************************
@@ -132,8 +135,6 @@ void InitTopoMap(LISTPTR Input, OPTIONSTRUCT * Options, MAPSIZE * Map,
     || (Options->FileFormat == BIN))
   {
     for (y = 0, i = 0; y < Map->NY; y++) {
-
-
       for (x = 0; x < Map->NX; x++, i++) {
         (*TopoMap)[y][x].Mask = Mask[i];
       }
@@ -154,7 +155,6 @@ void InitTopoMap(LISTPTR Input, OPTIONSTRUCT * Options, MAPSIZE * Map,
      slope. */
   ElevationSlopeAspect(Map, *TopoMap);
 
-
   /* After calculating the slopes and aspects for all the points, reset the
      mask if the model is to be run in point mode */
   if (Options->Extent == POINT) {
@@ -168,8 +168,8 @@ void InitTopoMap(LISTPTR Input, OPTIONSTRUCT * Options, MAPSIZE * Map,
 /*****************************************************************************
   InitSoilMap()
 *****************************************************************************/
-void InitSoilMap(LISTPTR Input, OPTIONSTRUCT * Options, MAPSIZE * Map,
-  LAYER * Soil, TOPOPIX ** TopoMap, SOILPIX *** SoilMap)
+void InitSoilMap(LISTPTR Input, OPTIONSTRUCT *Options, MAPSIZE *Map,
+  LAYER *Soil, TOPOPIX **TopoMap, SOILPIX ***SoilMap)
 {
   const char *Routine = "InitSoilMap";
   char VarName[BUFSIZE + 1];	/* Variable name */
@@ -295,7 +295,8 @@ void InitSoilMap(LISTPTR Input, OPTIONSTRUCT * Options, MAPSIZE * Map,
 /*****************************************************************************
   InitVegMap()
 *****************************************************************************/
-void InitVegMap(OPTIONSTRUCT * Options, LISTPTR Input, MAPSIZE * Map, VEGPIX *** VegMap)
+void InitVegMap(OPTIONSTRUCT *Options, LISTPTR Input, MAPSIZE *Map,
+  VEGPIX ***VegMap)
 {
   const char *Routine = "InitVegMap";
   char VarName[BUFSIZE + 1];
@@ -306,6 +307,7 @@ void InitVegMap(OPTIONSTRUCT * Options, LISTPTR Input, MAPSIZE * Map, VEGPIX ***
   int flag;
   int NumberType;		/* number type */
   unsigned char *Type;		/* Vegetation type */
+
 
   /* Get the map filename from the [VEGETATION] section */
   GetInitString("VEGETATION", "VEGETATION MAP FILE", "", VegMapFileName,
@@ -352,12 +354,108 @@ void InitVegMap(OPTIONSTRUCT * Options, LISTPTR Input, MAPSIZE * Map, VEGPIX ***
   free(Type);
 }
 
+/*****************************************************************************
+InitCanopyGapMap()
+*****************************************************************************/
+void InitCanopyGapMap(OPTIONSTRUCT *Options, LISTPTR Input, MAPSIZE *Map,
+  LAYER *Soil, LAYER *Veg, VEGTABLE *VType, VEGPIX ***VegMap, 
+  SOILTABLE *SType, SOILPIX ***SoilMap)
+{
+  const char *Routine = "InitCanopyGapMap";
+  char VarName[BUFSIZE + 1];
+  char CanopyMapFileName[BUFSIZE + 1];
+  int i, j;			/* counter */
+  int x;			/* counter */
+  int y;			/* counter */
+  int flag;
+  int NVeg;
+  int NSoil;
+  int NumberType;		/* number type */
+  unsigned char *Gap;		/* presence of gap */
 
+  /* Get the canopy gap map filename from the [VEGETATION] section */
+  GetInitString("VEGETATION", "CANOPY GAP MAP FILE", "", CanopyMapFileName,
+    (unsigned long)BUFSIZE, Input);
+  if (!CanopyMapFileName)
+    ReportError("CANOPY GAP MAP FILE", 51);
 
+  /* Read the vegetation type */
+  GetVarName(007, 0, VarName);
+  GetVarNumberType(007, &NumberType);
+  if (!(Gap = (unsigned char *)calloc(Map->NX * Map->NY,
+    SizeOfNumberType(NumberType))))
+    ReportError((char *)Routine, 1);
+  flag = Read2DMatrix(CanopyMapFileName, Gap, NumberType, Map->NY, Map->NX, 0, VarName, 0);
 
+  /* if NetCDF, may need to reverse the matrix */
+  if ((Options->FileFormat == NETCDF && flag == 0)
+    || (Options->FileFormat == BIN))
+  {
+    for (y = 0, i = 0; y < Map->NY; y++) {
+      for (x = 0; x < Map->NX; x++, i++) {
+        (*VegMap)[y][x].Gapping = Gap[i];
+        /* set gapping to false for cells with no overstory */
+        if (VType[(*VegMap)[y][x].Veg - 1].OverStory == FALSE)
+          (*VegMap)[y][x].Gapping = 0;
+      }
+    }
+  }
+  else if (Options->FileFormat == NETCDF && flag == 1) {
+    for (y = Map->NY - 1, i = 0; y >= 0; y--) {
+      for (x = 0; x < Map->NX; x++, i++) {
+        (*VegMap)[y][x].Gapping = Gap[i];
+        /* set gapping to false for cells with no overstory */
+        if (VType[(*VegMap)[y][x].Veg - 1].OverStory == FALSE)
+          (*VegMap)[y][x].Gapping = 0;
+        /* set gapping to false given glacier cell */
+        if (VType[(*VegMap)[y][x].Veg - 1].Index = GLACIER)
+          (*VegMap)[y][x].Gapping = 0;
+      }
+    }
+  }
+  else ReportError((char *)Routine, 57);
 
+  for (y = 0; y < Map->NY; y++) {
+    for (x = 0; x < Map->NX; x++) {
+      NVeg = Veg->MaxLayers;
+      NSoil = Soil->MaxLayers;
+      if ((*VegMap)[y][x].Gapping) {
+        
+        if (!((*VegMap)[y][x].Type = (CanopyGapStruct *)calloc(2, sizeof(CanopyGapStruct))))
+          ReportError((char *)Routine, 1);
 
+        for (i = 0; i < CELL_PARTITION; i++) {
+          if (!((*VegMap)[y][x].Type[i].IntRain = (float *)calloc(NVeg, sizeof(float))))
+            ReportError((char *)Routine, 1);
 
+          if (!((*VegMap)[y][x].Type[i].IntSnow = (float *)calloc(NVeg, sizeof(float))))
+            ReportError((char *)Routine, 1);
+
+          if (!((*VegMap)[y][x].Type[i].Moist = (float *)calloc(NSoil+1, sizeof(float))))
+            ReportError((char *)Routine, 1);
+
+          if (!((*VegMap)[y][x].Type[i].EPot = (float *)calloc(NVeg+1, sizeof(float))))
+            ReportError((char *)Routine, 1);
+
+          if (!((*VegMap)[y][x].Type[i].EAct = (float *)calloc(NVeg+1, sizeof(float))))
+            ReportError((char *)Routine, 1);
+
+          if (!((*VegMap)[y][x].Type[i].EInt = (float *)calloc(NVeg, sizeof(float))))
+            ReportError((char *)Routine, 1);
+
+          if (!((*VegMap)[y][x].Type[i].ESoil = (float **)calloc(NVeg, sizeof(float *))))
+            ReportError((char *)Routine, 1);
+
+          for (j = 0; j < NVeg; j++) {
+            if (!((*VegMap)[y][x].Type[i].ESoil[j] = (float *)calloc(NSoil, sizeof(float))))
+              ReportError((char *)Routine, 1);
+          }
+        }
+      }
+    }
+  }
+  free(Gap);
+}
 
 
 

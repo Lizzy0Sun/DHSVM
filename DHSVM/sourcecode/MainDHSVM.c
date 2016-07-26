@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 
   AGGREGATED Total = {			/* Total or average value of a  variable over the entire basin */
     {0.0, NULL, NULL, NULL, NULL, 0.0},												/* EVAPPIX */
-    {0.0, 0.0, 0.0, 0.0, 0.0, NULL, NULL, 0.0, 0, 0.0},								/* PRECIPPIX */
+    {0.0, 0.0, 0.0, 0.0, NULL, NULL, 0.0, 0, 0.0},								    /* PRECIPPIX */
     {{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, 0.0, {0.0, 0.0}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
                                                                                     /* PIXRAD */
     {0.0, 0.0, 0, NULL, NULL, 0.0, 0, 0.0, 0.0, 0.0, 0.0, NULL, NULL},				/* ROADSTRUCT*/
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
   InitTables(Time.NDaySteps, Input, &Options, &SType, &Soil, &VType, &Veg,
 	     &SnowAlbedo);
 
-  InitTerrainMaps(Input, &Options, &Map, &Soil, &TopoMap, &SoilMap, &VegMap);
+  InitTerrainMaps(Input, &Options, &Map, &Soil, &Veg, &TopoMap, SType, &SoilMap, VType, &VegMap);
 
   CheckOut(&Options, Veg, Soil, VType, SType, &Map, TopoMap, VegMap, SoilMap);
 
@@ -285,8 +285,9 @@ int main(int argc, char **argv)
 	        MakeLocalMetData(y, x, &Map, Time.DayStep, &Options, NStats,
 			       Stat, MetWeights[y][x], TopoMap[y][x].Dem,
 			       &(RadiationMap[y][x]), &(PrecipMap[y][x]), &Radar,
-			       RadarMap, PrismMap, &(SnowMap[y][x]),
-			       SnowAlbedo, MM5Input, WindModel, PrecipLapseMap,
+			       RadarMap, PrismMap, &(SnowMap[y][x]), SnowAlbedo,
+                   &(VegMap[y][x].Type), &(VegMap[y][x]),
+                   MM5Input, WindModel, PrecipLapseMap,
 			       &MetMap, NGraphics, Time.Current.Month,
 			       SkyViewMap[y][x], ShadowMap[Time.DayStep][y][x],
 			       SolarGeo.SunMax, SolarGeo.SineSolarAltitude);
@@ -295,8 +296,9 @@ int main(int argc, char **argv)
 	        MakeLocalMetData(y, x, &Map, Time.DayStep, &Options, NStats,
 			       Stat, MetWeights[y][x], TopoMap[y][x].Dem,
 			       &(RadiationMap[y][x]), &(PrecipMap[y][x]), &Radar,
-			       RadarMap, PrismMap, &(SnowMap[y][x]),
-			       SnowAlbedo, MM5Input, WindModel, PrecipLapseMap,
+			       RadarMap, PrismMap, &(SnowMap[y][x]), SnowAlbedo, 
+                   &(VegMap[y][x].Type), &(VegMap[y][x]), 
+                   MM5Input, WindModel, PrecipLapseMap,
 			       &MetMap, NGraphics, Time.Current.Month, 0.0,
 			       0.0, SolarGeo.SunMax,
 			       SolarGeo.SineSolarAltitude);
@@ -319,7 +321,7 @@ int main(int argc, char **argv)
 		  }
 		  
 		  MassEnergyBalance(&Options, y, x, SolarGeo.SineSolarAltitude, Map.DX, Map.DY, 
-			    Time.Dt, Options.HeatFlux, Options.CanopyRadAtt, Options.Infiltration, 
+			    Time.Dt, Options.HeatFlux, Options.CanopyRadAtt, Options.Infiltration, Soil.MaxLayers,
 				Veg.MaxLayers, &LocalMet, &(Network[y][x]), &(PrecipMap[y][x]), 
 			    &(VType[VegMap[y][x].Veg-1]), &(VegMap[y][x]), &(SType[SoilMap[y][x].Soil-1]),
 			    &(SoilMap[y][x]), &(SnowMap[y][x]), &(RadiationMap[y][x]), &(EvapMap[y][x]), 

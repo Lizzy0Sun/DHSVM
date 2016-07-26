@@ -240,6 +240,7 @@ typedef struct {
   int StreamTemp;
   int CanopyShading;
   int ImprovRadiation;          /* if TRUE then improved radiation scheme is on */
+  int CanopyGapping;            /* if canopy gapping is on */
   char PrismDataPath[BUFSIZE + 1];
   char PrismDataExt[BUFSIZE + 1];
   char ShadingDataPath[BUFSIZE + 1];
@@ -253,7 +254,6 @@ typedef struct {
   float SumPrecip;              /* Accumulated precipitation at pixel (m) */
   float RainFall;		        /* Amount of rainfall (m) */
   float SnowFall;		        /* Amount of snowfall determined by air temperature (m) */
-  float MomentSq;               /* Momentum squared for rain (kg* m/s)^2 /m^2*s) */
   float *IntRain;		        /* Rain interception by each vegetation layer (m) */
   float *IntSnow;		        /* Snow interception by each vegetation layer (m) */
   float TempIntStorage;			/* Temporary snow and rain interception storage, used by MassRelease() */
@@ -282,6 +282,7 @@ typedef struct {
   float RBMNetShort;    /* Shortwave radiation reaching the water surface W/m2 (for RBM only) */
   float PixelBeam;      /* Net beam radiation W/m2 (used for RBM only) */
   float PixelDiffuse;   /* Net diffuse radiation W/m2 (used for RBM only) */
+
 } PIXRAD;
 
 typedef struct {
@@ -393,6 +394,7 @@ typedef struct {
   float *KhDry;				/* Thermal conductivity for dry soil (W/(m*K)) */
   float *KhSol;				/* Effective solids thermal conductivity (W/(M*K)) */
   float *Ch;				/* Heat capacity for soil medium */
+  float *Residual;          /* residual water content in the unsaturated soil layer */
   float MaxInfiltrationRate;/* Maximum infiltration rate for upper layer (m/s) */
   float G_Infilt;                /* Mean capillary drive for dynamic maximum infiltration rate (m)   */
   float DepthThresh;    /* Threshold water table depth, beyond which transmissivity decays linearly with water table depth */
@@ -428,9 +430,62 @@ typedef struct {
   ITEM *OrderedTopoIndex;       /* Structure array to hold the ranked topoindex for fine pixels in a coarse pixel */
 } TOPOPIX;
 
-typedef struct {
-  int Veg;			/* Vegetation type */
+typedef struct
+{
+  uchar HasSnow;			    /* Snow cover flag determined by SWE */
+  unshort LastSnow;			    /* Days since last snowfall */
+  int NVegLActual;		        /* Number of vegetation layers above snow */
+  float Albedo;				    /* Albedo of snow pack */
+  float TSurf;				    /* Temperature of snow pack surface layer */
+  unsigned char OverStory;	    /* TRUE if there is an overstory */
+  unsigned char UnderStory;	    /* TRUE if there is an understory */
+  float NetRadiation[2];        /* Net radiation received by the entire pixel W/m2 */
+  float NetShort[2];            /* Shortwave radiation for vegetation surfaces and ground/snow surface W/m2 */
+  float LongIn[2];		        /* Incoming longwave radiation for vegetation surfaces and ground/snow surface W/m2 */
+  float LongOut[2];		        /* Outgoing longwave radiation for vegetation surfaces and ground/snow surface W/m2 */
+  float PixelLongIn;	        /* Incoming longwave for entire pixel W/m2 */
+  float PixelLongOut;	        /* Outgoing longwave for entire pixel W/m2 */
+  float Precip;					/* Total amount of precipitation at pixel (m) */
+  float SumPrecip;              /* Accumulated precipitation at pixel (m) */
+  float RainFall;		        /* Amount of rainfall (m) */
+  float SnowFall;		        /* Amount of snowfall determined by air temperature (m) */
+  float *IntRain;		        /* Rain interception by each vegetation layer (m) */
+  float *IntSnow;		        /* Snow interception by each vegetation layer (m) */
+  float CanopyVaporMassFlux;    /* Vapor mass flux to/from intercepted snow in the canopy (m/timestep) */
+  float TempIntStorage;			/* Temporary snow and rain interception storage, used by MassRelease() */
   float Tcanopy;		        /* Canopy temperature (C) */
+  float MeltEnergy;			    /* Energy used to melt snow and change of cold content of snow pack */
+  float MoistureFlux;		    /* Amount of water transported from the pixel
+                                   to the atmosphere (m/timestep) */
+  float Ra[2];			        /* Aerodynamic resistance in the absence of snow  */
+  float RaSnow;			        /* Aerodynamic resistance for the lower boundary in the presence of snow */
+  float U[2];			        /* Wind speed profile (m/s) */
+  float USnow;			        /* wind speed 2, above snow surface (m/s) */
+  float SnowPackOutflow;		/* Snow pack outflow (m) */
+  float Swq;				    /* Snow water equivalent */
+  float PackWater;			    /* Liquid water content of snow pack */
+  float TPack;				    /* Temperature of snow pack */
+  float SurfWater;			    /* Liquid water content of surface layer */
+  float VaporMassFlux;		    /* Vapor mass flux to/from snow pack,(m/timestep). 
+                                   A negataive value indicates flux from snow -- sublimiation */
+  float *Moist;			        /* Soil moisture content in layers (0-1) */
+  float EvapSoil;		        /* Evaporation from the upper soil layer */
+  float ETot;			/* Total amount of evapotranspiration */
+  float *EPot;			/* Potential transpiration from each vegetation/soil layer */
+  float *EAct;			/* Actual transpiration from each vegetation soil layer */
+  float *EInt;			/* Evaporation from interception for each vegetation layer */
+  float **ESoil;		/* Transpiration for each vegetation layer from each soil zone */
+} CanopyGapStruct;
+
+typedef struct {
+  int Veg;			            /* Vegetation type */
+  int Gapping;                  /* 1=present, 0=absence*/
+  float Tcanopy;		        /* Canopy temperature (C) */
+  float MoistureFlux;		    /* Amount of water transported from the pixel
+                                   to the atmosphere (m/timestep) */
+  float MeltEnergy;			    /* Energy used to melt snow and change of cold content 
+                                   of snow pack */
+  CanopyGapStruct *Type;        /* canopy structure */         
 } VEGPIX;
 
 typedef struct {
@@ -438,7 +493,7 @@ typedef struct {
   int Index;
   int NVegLayers;		/* Number of vegetation layers */
   int NSoilLayers;		/* Number of soil layers */
-  unsigned char OverStory;	        /* TRUE if there is an overstory */
+  unsigned char OverStory;	/* TRUE if there is an overstory */
   unsigned char UnderStory;	/* TRUE if there is an understory */
   float *Height;		/* Height of vegetation (m) */
   float *Fract;			/* Fractional coverage */
@@ -486,7 +541,8 @@ typedef struct {
   float VfAdjust;       /* Canopy view adjustment factor */
   float ExtnCoeff;            /* Light extinction coefficient varied by month */
   float MonthlyExtnCoeff[12]; /* Monthly light extinction (or attenuation coeff); unit: m^-1; 
-                             used in improved radiation scheme */
+                                 used in improved radiation scheme */
+  float GapDiam;
 } VEGTABLE;
 
 typedef struct {

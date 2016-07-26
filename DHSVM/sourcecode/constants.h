@@ -17,6 +17,7 @@
 #define CONSTANTS_H
 
 #define CELLFACTOR 3            /* For discretization of forest roads for kinematic wave routing */
+#define CELL_PARTITION 2        /* Number of veg type in a grid cell */
 #define CH_ICE     (2100.0e3)	/* Volumetric heat capacity (J/(m3*C) of ice (0C) */
 #define CH_WATER   (4186.8e3)	/* Volumetric heat capacity (J/(m3*C) of water */
 #define CP         1013.0		/* Specific heat of moist air at constant pressure (J/(kg*C)) */

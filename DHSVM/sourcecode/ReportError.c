@@ -90,6 +90,9 @@ static char *ErrorMessage[] = {
   "The options set in the input file do not support plotting variable ID:", /* 67 */
   "Riparian parameter < 0:", /* 68 */
   "No gridded met file is found within the basin boundary", /* 69 */
+  "Stream temp module must be turned on to allow canopy shading options", /* 70 */
+  "Improved radiation scheme must be true if canopy gapping option is true", /* 71 */
+  "Canopy gap area > grid cell area", /* 72 */
   NULL
 };
 

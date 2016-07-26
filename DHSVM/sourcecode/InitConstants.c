@@ -92,6 +92,7 @@ void InitConstants(LISTPTR Input, OPTIONSTRUCT *Options, MAPSIZE *Map,
 	{"OPTIONS", "STREAM TEMPERATURE", "", ""}, 
 	{"OPTIONS", "RIPARIAN SHADING", "", ""}, 
     {"OPTIONS", "IMPROVED RADIATION SCHEME", "", "" },
+    {"OPTIONS", "CANOPY GAPPING", "", "" },
     {"AREA", "COORDINATE SYSTEM", "", ""},
     {"AREA", "EXTREME NORTH", "", ""},
     {"AREA", "EXTREME WEST", "", ""},
@@ -290,8 +291,7 @@ void InitConstants(LISTPTR Input, OPTIONSTRUCT *Options, MAPSIZE *Map,
   if (strncmp(StrEnv[canopy_shading].VarStr, "TRUE", 4) == 0) {
 	Options->CanopyShading = TRUE;
 	if (Options->StreamTemp == FALSE) {
-	  printf("Stream temp module must be turned on to allow canopy shading options\n");
-	  exit(-1);
+      ReportError(StrEnv[canopy_shading].KeyName, 70);
 	}
   }
   else if (strncmp(StrEnv[canopy_shading].VarStr, "FALSE", 5) == 0)
@@ -306,6 +306,19 @@ void InitConstants(LISTPTR Input, OPTIONSTRUCT *Options, MAPSIZE *Map,
     Options->ImprovRadiation = FALSE;
   else
     ReportError(StrEnv[improv_radiation].KeyName, 51);
+
+  /* Determine if canopy gapping will be modeled */
+  if (strncmp(StrEnv[gapping].VarStr, "TRUE", 4) == 0)
+    Options->CanopyGapping = TRUE;
+  else if (strncmp(StrEnv[gapping].VarStr, "FALSE", 5) == 0)
+    Options->CanopyGapping = FALSE;
+  else
+    ReportError(StrEnv[gapping].KeyName, 51);
+
+  /* If canopy gapping option is true, the improved radiation scheme must be true */
+  if (Options->CanopyGapping == TRUE && Options->ImprovRadiation == FALSE) {
+    ReportError(StrEnv[gapping].KeyName, 71);
+  }
 
   /* Determine if listed met stations outside bounding box are used */
   if (strncmp(StrEnv[outside].VarStr, "TRUE", 4) == 0)

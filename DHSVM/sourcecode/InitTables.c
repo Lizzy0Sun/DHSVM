@@ -37,8 +37,8 @@
  /*				  InitTables()                                 */
 
  /*******************************************************************************/
-void InitTables(int StepsPerDay, LISTPTR Input, OPTIONSTRUCT *Options,
-  SOILTABLE **SType, LAYER *Soil, VEGTABLE **VType,
+void InitTables(int StepsPerDay, LISTPTR Input, OPTIONSTRUCT *Options, 
+  SOILTABLE **SType, LAYER *Soil, VEGTABLE **VType, 
   LAYER *Veg, SNOWTABLE **SnowAlbedo)
 {
   printf("Initializing tables\n");
@@ -88,17 +88,16 @@ int InitSoilTable(OPTIONSTRUCT *Options, SOILTABLE ** SType,
     "MAXIMUM INFILTRATION",
     "CAPILLARY DRIVE",
     "SURFACE ALBEDO",
-
     "NUMBER OF SOIL LAYERS",
     "POROSITY",
     "PORE SIZE DISTRIBUTION",
     "BUBBLING PRESSURE",
-
     "FIELD CAPACITY",
     "WILTING POINT",
     "BULK DENSITY",
     "VERTICAL CONDUCTIVITY",
     "THERMAL CONDUCTIVITY",
+    "RESIDUAL WATER CONTENT",
     "THERMAL CAPACITY"
   };
   char SectionName[] = "SOILS";
@@ -198,6 +197,9 @@ int InitSoilTable(OPTIONSTRUCT *Options, SOILTABLE ** SType,
     if (!((*SType)[i].Ch = (float *)calloc((*SType)[i].NLayers,
       sizeof(float))))
       ReportError((char *)Routine, 1);
+    if (!((*SType)[i].Residual = (float *)calloc((*SType)[i].NLayers,
+      sizeof(float))))
+      ReportError((char *)Routine, 1);
 
     if (!CopyFloat((*SType)[i].Porosity, VarStr[porosity], (*SType)[i].NLayers))
       ReportError(KeyName[porosity], 51);
@@ -223,13 +225,14 @@ int InitSoilTable(OPTIONSTRUCT *Options, SOILTABLE ** SType,
     if (!CopyFloat((*SType)[i].Ks, VarStr[vertical_ks], (*SType)[i].NLayers))
       ReportError(KeyName[vertical_ks], 51);
 
-    if (!CopyFloat((*SType)[i].KhSol, VarStr[solids_thermal],
-      (*SType)[i].NLayers))
+    if (!CopyFloat((*SType)[i].KhSol, VarStr[solids_thermal], (*SType)[i].NLayers))
       ReportError(KeyName[solids_thermal], 51);
 
-    if (!CopyFloat((*SType)[i].Ch, VarStr[thermal_capacity],
-      (*SType)[i].NLayers))
+    if (!CopyFloat((*SType)[i].Ch, VarStr[thermal_capacity], (*SType)[i].NLayers))
       ReportError(KeyName[thermal_capacity], 51);
+
+    if (!CopyFloat((*SType)[i].Residual, VarStr[residual], (*SType)[i].NLayers))
+      ReportError(KeyName[residual], 51);
   }
 
   for (i = 0; i < NSoils; i++)
@@ -262,8 +265,7 @@ int InitSoilTable(OPTIONSTRUCT *Options, SOILTABLE ** SType,
 
   Comments     :
 ********************************************************************************/
-int InitVegTable(VEGTABLE ** VType, LISTPTR Input, OPTIONSTRUCT * Options,
-  LAYER * Veg)
+int InitVegTable(VEGTABLE **VType, LISTPTR Input, OPTIONSTRUCT *Options, LAYER *Veg)
 {
   const char *Routine = "InitVegTable";
   int i;			/* Counter */
@@ -294,6 +296,7 @@ int InitVegTable(VEGTABLE ** VType, LISTPTR Input, OPTIONSTRUCT * Options,
     "DETENTION FRACTION",
     "DETENTION DECAY",
     "HEIGHT",
+    "CANOPY GAP DIAMETER",
     "MAXIMUM RESISTANCE",
     "MINIMUM RESISTANCE",
     "MOISTURE THRESHOLD",
@@ -468,7 +471,6 @@ int InitVegTable(VEGTABLE ** VType, LISTPTR Input, OPTIONSTRUCT * Options,
     if ((*VType)[i].OverStory == TRUE) {
       if (!CopyFloat(&((*VType)[i].Fract[0]), VarStr[fraction], 1))
         ReportError(KeyName[fraction], 51);
-
       if (Options->CanopyRadAtt == VARIABLE) {
         if (!CopyFloat(&((*VType)[i].HemiFract[0]), VarStr[hemifraction], 1))
           ReportError(KeyName[hemifraction], 51);
@@ -482,10 +484,16 @@ int InitVegTable(VEGTABLE ** VType, LISTPTR Input, OPTIONSTRUCT * Options,
           ReportError(KeyName[scat], 51);
         (*VType)[i].Atten = NOT_APPLICABLE;
       }
-
-      else if (Options->CanopyRadAtt == FIXED) {
-        if (!CopyFloat(&((*VType)[i].Atten), VarStr[radiation_att], 1))
-          ReportError(KeyName[radiation_att], 51);
+      else if (Options->CanopyRadAtt == FIXED && Options->ImprovRadiation == FALSE) {
+        if (!CopyFloat(&((*VType)[i].Atten), VarStr[beam_attn], 1))
+          ReportError(KeyName[beam_attn], 51);
+        (*VType)[i].ClumpingFactor = NOT_APPLICABLE;
+        (*VType)[i].Scat = NOT_APPLICABLE;
+        (*VType)[i].LeafAngleA = NOT_APPLICABLE;
+        (*VType)[i].LeafAngleB = NOT_APPLICABLE;
+      }
+      else if (Options->ImprovRadiation==TRUE){
+        (*VType)[i].Atten = NOT_APPLICABLE;
         (*VType)[i].ClumpingFactor = NOT_APPLICABLE;
         (*VType)[i].Scat = NOT_APPLICABLE;
         (*VType)[i].LeafAngleA = NOT_APPLICABLE;
@@ -579,9 +587,9 @@ int InitVegTable(VEGTABLE ** VType, LISTPTR Input, OPTIONSTRUCT * Options,
        speed of 1 m/s, and are adjusted each timestep using actual reference
        height wind speeds */
     CalcAerodynamic((*VType)[i].NVegLayers, (*VType)[i].OverStory,
-      (*VType)[i].Cn, (*VType)[i].Height, (*VType)[i].Trunk,
-      (*VType)[i].U, &((*VType)[i].USnow), (*VType)[i].Ra,
-      &((*VType)[i].RaSnow));
+        (*VType)[i].Cn, (*VType)[i].Height, (*VType)[i].Trunk,
+        (*VType)[i].U, &((*VType)[i].USnow), (*VType)[i].Ra,
+        &((*VType)[i].RaSnow));
 
     /* Run the improved radiation scheme in which the tree height, solar altitude and fractional coverage
     are all taken into account into the radiation calculation */
@@ -592,6 +600,11 @@ int InitVegTable(VEGTABLE ** VType, LISTPTR Input, OPTIONSTRUCT * Options,
         if (!CopyFloat(&((*VType)[i].VfAdjust), VarStr[vf_adj], 1))
           ReportError(KeyName[vf_adj], 51);
         (*VType)[i].Vf = (*VType)[i].Fract[0] * (*VType)[i].VfAdjust;
+
+        if (Options->CanopyGapping == TRUE) {
+          if (!CopyFloat(&((*VType)[i].GapDiam), VarStr[gap_diam], 1))
+            ReportError(KeyName[gap_diam], 51);
+        }
       }
       else {
         if ((*VType)[i].UnderStory == TRUE) {

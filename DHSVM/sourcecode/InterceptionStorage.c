@@ -25,10 +25,8 @@
  /*****************************************************************************
    InterceptionStorage()
  *****************************************************************************/
-void InterceptionStorage(int NMax, int NAct, float *MaxInt, float *Fract,
-  float *Int, float *Precip, float *MomentSq, float *Height,
-  unsigned char Understory, float Dt, float MS_Rainfall,
-  float LD_FallVelocity)
+void InterceptionStorage(int NAct, float *MaxInt, float *Fract,
+  float *Int, float *Precip)
 {
   float Available;		/* Available storage */
   float Intercepted;	/* Amount of water intercepted during this timestep */
@@ -46,22 +44,27 @@ void InterceptionStorage(int NMax, int NAct, float *MaxInt, float *Fract,
     *Precip -= Intercepted;
     Int[i] += Intercepted;
   }
+}
 
-  /* Find momentum squared of rainfall. */
-  if (Understory)
-    /* Since the understory is assumed to cover the entire grid cell, all
-       momentum is associated with leaf drip, eq. 2, Wicks and Bathurst (1996) */
-    *MomentSq = pow(LD_FallVelocity * WATER_DENSITY, 2) * PI / 6 *
-    pow(LEAF_DRIP_DIA, 3) * (*Precip) / Dt;
-  else
-    /* If no understory, part of the rainfall reaches the ground as direct throughfall. */
-    *MomentSq = (pow(LD_FallVelocity * WATER_DENSITY, 2) * PI / 6 *
-      pow(LEAF_DRIP_DIA, 3) * (*Precip) / Dt) + (1 - Fract[0]) *
-    MS_Rainfall;
+/*****************************************************************************
+CanopyGapInterception()
+*****************************************************************************/
+void CanopyGapInterceptionStorage(int NAct, float *MaxInt,
+  float *Fract, float *Int, float *Precip)
+{
+  float Available;		/* Available storage */
+  float Intercepted;	/* Amount of water intercepted during this timestep */
+  int i;			    /* counter */
 
-  /* WORK IN PROGESS */
-  /* It should be checked whether the following statement can cause a "loss"
-     of water.  When there is interception storage at timestep t, and snow
-     will cover this vegetation layer at t = T+1, the amount of water in
-     storage will be lost */
+  if (NAct >= 1) {
+    i = 1;
+    Available = MaxInt[i] - Int[i];
+    if (Available > *Precip * Fract[i])
+      Intercepted = (*Precip) * Fract[i];
+    else
+      Intercepted = Available;
+    *Precip -= Intercepted;
+    Int[i] += Intercepted;
+  }
+
 }
