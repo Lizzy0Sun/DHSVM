@@ -1126,7 +1126,7 @@ void DumpPix(DATE *Current, int first, FILES *OutFile, EVAPPIX *Evap,
     fprintf(OutFile->FilePtr, "  Precip(m) ");
     fprintf(OutFile->FilePtr, " Snow(m) ");
     fprintf(OutFile->FilePtr, " IExcess(m) ");
-    fprintf(OutFile->FilePtr, "HasSnow SnowCover LastSnow Swq Melt ");
+    fprintf(OutFile->FilePtr, "HasSnow SnowCover LastSnow Swq SnMelt ");
     fprintf(OutFile->FilePtr, "PackWater TPack Iwq GlMelt ");
 
     fprintf(OutFile->FilePtr, " TotalET ");   /*total evapotranspiration*/

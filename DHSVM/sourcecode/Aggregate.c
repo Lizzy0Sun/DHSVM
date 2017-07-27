@@ -209,6 +209,7 @@ void Aggregate(MAPSIZE *Map, OPTIONSTRUCT *Options, TOPOPIX **TopoMap,
   Total->Snow.Melt /= NPixels;
   Total->Snow.IceRemoved /= NPixels;
   Total->Snow.PackWater /= NPixels;
+  Total->Snow.GlMelt /= NPixels;
   Total->Snow.TPack /= NPixels;
   Total->Snow.SurfWater /= NPixels;
   Total->Snow.TSurf /= NPixels;
